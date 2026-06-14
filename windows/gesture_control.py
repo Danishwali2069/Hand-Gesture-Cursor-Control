@@ -1,24 +1,3 @@
-"""
-Touchless Control — Improved Edition
-=====================================
-Gesture mapping:
-  Index  + Thumb  pinch  →  Drag & Drop
-  Middle + Thumb  pinch  →  Click / Double-click (open)
-  Ring   + Thumb  pinch  →  Close active window (Alt+F4)
-                             Works even when hand is out of camera frame —
-                             no cursor needed, fires from hand alone.
-
-Other improvements over original:
-  - Fixed NameError: `index_knuckle` was used but never defined (now uses lm[6])
-  - Beautiful dark UI with real-time visual feedback (gesture bars, hand indicator)
-  - Colour-coded status badges (green/amber/red)
-  - Live tuning sliders, no more cryptic keyboard-only shortcuts
-  - Per-gesture EMA progress bars so users can see pinch strength live
-  - Proper thread-safe UI updates via root.after queue
-  - Session stats (clicks, double-clicks, drags, closes, uptime)
-  - Modular, well-commented code
-"""
-
 import threading
 import time
 import tkinter as tk
@@ -33,9 +12,7 @@ import mediapipe as mp
 import numpy as np
 import pyautogui
 
-# ──────────────────────────────────────────────
-# MediaPipe backend detection (unchanged logic)
-# ──────────────────────────────────────────────
+
 MP_BACKEND = "mediapipe.solutions"
 TASKS_VISION = None
 try:
@@ -66,9 +43,7 @@ def print_startup_diagnostics() -> None:
         raise RuntimeError("MediaPipe Hands module is not available in this installation.")
 
 
-# ──────────────────────────────────────────────
-# MediaPipe Tasks wrapper (for newer MP builds)
-# ──────────────────────────────────────────────
+
 class MpTasksHandTracker:
     MODEL_URL = (
         "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
@@ -113,9 +88,7 @@ class MpTasksHandTracker:
         return type("LegacyResult", (), {"multi_hand_landmarks": None})()
 
 
-# ──────────────────────────────────────────────
-# Gesture state
-# ──────────────────────────────────────────────
+
 @dataclass
 class GestureState:
     action_pinch_active: bool = False
@@ -147,9 +120,7 @@ class SessionStats:
         return f"{h:02d}:{m:02d}:{s:02d}"
 
 
-# ──────────────────────────────────────────────
-# Floating cursor overlay
-# ──────────────────────────────────────────────
+
 class FloatingCursor:
     SIZE = 20
 
@@ -176,9 +147,7 @@ class FloatingCursor:
             pass
 
 
-# ──────────────────────────────────────────────
-# Core gesture controller
-# ──────────────────────────────────────────────
+
 class GestureController:
     ACTION_PINCH_ON_RATIO  = 0.50
     ACTION_PINCH_OFF_RATIO = 0.68
@@ -490,10 +459,6 @@ class GestureController:
         ):
             app.queue_status("Moving", "ok")
 
-        # ── Close channel (ring + thumb) ──────────────────────────────────
-        # Fires Alt+F4 on the active window. Works even if hand is off-screen
-        # since it doesn't need a cursor position — it's a pure keyboard action.
-        # Requires holding the pinch for CLOSE_HOLD_SEC to avoid accidental fires.
         if close_pinch and not self.state.close_pinch_active:
             self.state.close_pinch_active = True
             self._close_pinch_start_ts = time.time()
@@ -517,9 +482,7 @@ class GestureController:
                 app.queue_status("Close cancelled", "warn")
 
 
-# ──────────────────────────────────────────────
-# Colour palette
-# ──────────────────────────────────────────────
+
 C = {
     "bg":      "#0D0F14",
     "surface": "#161A24",
@@ -538,9 +501,7 @@ FS = ("Courier New", 10, "bold")   # status
 FX = ("Courier New",  8)           # small
 
 
-# ──────────────────────────────────────────────
-# Main UI
-# ──────────────────────────────────────────────
+
 class ControlApp:
     def __init__(self):
         self.root = tk.Tk()
@@ -557,7 +518,7 @@ class ControlApp:
         self._bind_keys()
         self._tick()
 
-    # ────────────────────────────────────────────
+
     def _build_ui(self):
         PAD = dict(padx=14, pady=5)
 
@@ -679,7 +640,7 @@ class ControlApp:
         lbl.pack()
         return lbl
 
-    # ── Keyboard shortcuts ───────────────────────
+
     def _bind_keys(self):
         r = self.root
         r.bind("<KeyPress-plus>",  lambda _: self._on_gain(self.controller.RELATIVE_GAIN_X + 0.15))
@@ -692,7 +653,7 @@ class ControlApp:
         r.bind("<KeyPress-r>", lambda _: self.controller.reset_tracking_state())
         r.bind("<KeyPress-R>", lambda _: self.controller.reset_tracking_state())
 
-    # ── Tuning ───────────────────────────────────
+ 
     def _on_gain(self, val):
         self.controller.adjust_gain(float(val))
         self._gain_var.set(self.controller.RELATIVE_GAIN_X)
@@ -705,7 +666,7 @@ class ControlApp:
         self.controller.adjust_max_step(int(float(val)))
         self._step_var.set(self.controller.MAX_STEP_PIXELS)
 
-    # ── Thread-safe queue ────────────────────────
+ 
     def queue_status(self, text: str, level: str = "ok"):
         self._ui_queue.append(("status", text, level))
 
@@ -789,7 +750,7 @@ class ControlApp:
     def hide_cursor_overlay(self, set_off_status: bool = True):
         self._ui_queue.append(("_hide_cursor", set_off_status))
 
-    # ── Toggle ───────────────────────────────────
+
     def toggle(self):
         if not self.enabled:
             self.enabled = True
@@ -817,7 +778,7 @@ class ControlApp:
         self.root.mainloop()
 
 
-# ──────────────────────────────────────────────
+
 if __name__ == "__main__":
     print_startup_diagnostics()
     ControlApp().run()
